@@ -30,7 +30,6 @@ def convert_to_degrees(value):
     return d + (m / 60.0) + (s / 3600.0)
 
 
-# 🚀 Extract Metadata
 def extract_metadata(image):
     exif_data = image._getexif()
 
@@ -44,24 +43,24 @@ def extract_metadata(image):
     for tag, value in exif_data.items():
         tag_name = ExifTags.TAGS.get(tag, tag)
 
-        # 📅 Date & Time
+        
         if tag_name == "DateTime":
             metadata["date_time"] = value
 
-        # 📱 Camera Brand
+        
         if tag_name == "Make":
             metadata["camera_make"] = value
 
-        # 📷 Camera Model
+        
         if tag_name == "Model":
             metadata["camera_model"] = value
 
-        # 🌍 GPS
+        
         if tag_name == "GPSInfo":
             for key in value:
                 gps_info[ExifTags.GPSTAGS.get(key)] = value[key]
 
-    # GPS Processing
+    
     lat = gps_info.get("GPSLatitude")
     lat_ref = gps_info.get("GPSLatitudeRef")
 
@@ -84,7 +83,7 @@ def extract_metadata(image):
     return metadata
 
 
-# API
+
 @app.post("/upload")
 async def upload_image(file: UploadFile = File(...)):
     contents = await file.read()

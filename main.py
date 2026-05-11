@@ -9,7 +9,7 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://image-geo-locate.vercel.app.",
+        "https://image-geo-locate.vercel.app",
         "http://localhost:3000"
     ],
     allow_credentials=True,

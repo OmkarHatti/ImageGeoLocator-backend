@@ -8,14 +8,17 @@ app = FastAPI()
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://image-geo-locator-frontend.vercel.app"],
+    allow_origins=[
+        "https://image-geo-locator-frontend.vercel.app",
+        "http://localhost:3000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-# 📍 Convert GPS coordinates
+# Convert GPS coordinates
 def convert_to_degrees(value):
     def to_float(v):
         try:
@@ -30,9 +33,11 @@ def convert_to_degrees(value):
     return d + (m / 60.0) + (s / 3600.0)
 
 
-# 📸 Extract Metadata
+# Extract Metadata
 def extract_metadata(image):
-    exif_data = image._getexif()
+
+    # SAFER METHOD
+    exif_data = image.getexif()
 
     if not exif_data:
         return {}
@@ -40,8 +45,9 @@ def extract_metadata(image):
     metadata = {}
     gps_info = {}
 
-    for tag, value in exif_data.items():
-        tag_name = ExifTags.TAGS.get(tag, tag)
+    for tag_id in exif_data:
+        value = exif_data.get(tag_id)
+        tag_name = ExifTags.TAGS.get(tag_id, tag_id)
 
         # Date & Time
         if tag_name == "DateTime":
@@ -58,7 +64,8 @@ def extract_metadata(image):
         # GPS
         if tag_name == "GPSInfo":
             for key in value:
-                gps_info[ExifTags.GPSTAGS.get(key)] = value[key]
+                gps_tag = ExifTags.GPSTAGS.get(key, key)
+                gps_info[gps_tag] = value[key]
 
     # GPS Coordinates
     lat = gps_info.get("GPSLatitude")
@@ -83,10 +90,18 @@ def extract_metadata(image):
     return metadata
 
 
-# 🚀 Upload API
+# Upload API
 @app.post("/upload")
 async def upload_image(file: UploadFile = File(...)):
     try:
+
+        # CHECK IMAGE TYPE
+        if not file.content_type.startswith("image/"):
+            return {
+                "status": "error",
+                "message": "Please upload a valid image"
+            }
+
         contents = await file.read()
 
         image = Image.open(io.BytesIO(contents))
@@ -103,3 +118,8 @@ async def upload_image(file: UploadFile = File(...)):
             "status": "error",
             "message": str(e)
         }
+
+
+@app.get("/")
+def home():
+    return {"message": "Backend running successfully"}

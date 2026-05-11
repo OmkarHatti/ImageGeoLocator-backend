@@ -8,14 +8,14 @@ app = FastAPI()
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://image-geo-locator-frontend.vercel.app"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-# 📍 Convert GPS
+# 📍 Convert GPS coordinates
 def convert_to_degrees(value):
     def to_float(v):
         try:
@@ -30,37 +30,37 @@ def convert_to_degrees(value):
     return d + (m / 60.0) + (s / 3600.0)
 
 
+# 📸 Extract Metadata
 def extract_metadata(image):
     exif_data = image._getexif()
 
     if not exif_data:
-        return None
+        return {}
 
     metadata = {}
-
     gps_info = {}
 
     for tag, value in exif_data.items():
         tag_name = ExifTags.TAGS.get(tag, tag)
 
-        
+        # Date & Time
         if tag_name == "DateTime":
             metadata["date_time"] = value
 
-        
+        # Camera Brand
         if tag_name == "Make":
             metadata["camera_make"] = value
 
-        
+        # Camera Model
         if tag_name == "Model":
             metadata["camera_model"] = value
 
-        
+        # GPS
         if tag_name == "GPSInfo":
             for key in value:
                 gps_info[ExifTags.GPSTAGS.get(key)] = value[key]
 
-    
+    # GPS Coordinates
     lat = gps_info.get("GPSLatitude")
     lat_ref = gps_info.get("GPSLatitudeRef")
 
@@ -83,22 +83,23 @@ def extract_metadata(image):
     return metadata
 
 
-
+# 🚀 Upload API
 @app.post("/upload")
 async def upload_image(file: UploadFile = File(...)):
-    contents = await file.read()
+    try:
+        contents = await file.read()
 
-    image = Image.open(io.BytesIO(contents))
+        image = Image.open(io.BytesIO(contents))
 
-    metadata = extract_metadata(image)
+        metadata = extract_metadata(image)
 
-    if metadata:
         return {
             "status": "success",
             "data": metadata
         }
 
-    return {
-        "status": "error",
-        "message": "No metadata found"
-    }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }

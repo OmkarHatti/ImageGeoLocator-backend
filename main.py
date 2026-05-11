@@ -36,7 +36,6 @@ def convert_to_degrees(value):
 # Extract Metadata
 def extract_metadata(image):
 
-    # SAFER METHOD
     exif_data = image.getexif()
 
     if not exif_data:
@@ -45,8 +44,8 @@ def extract_metadata(image):
     metadata = {}
     gps_info = {}
 
-    for tag_id in exif_data:
-        value = exif_data.get(tag_id)
+    for tag_id, value in exif_data.items():
+
         tag_name = ExifTags.TAGS.get(tag_id, tag_id)
 
         # Date & Time
@@ -61,13 +60,17 @@ def extract_metadata(image):
         if tag_name == "Model":
             metadata["camera_model"] = value
 
-        # GPS
+        # GPS Data
         if tag_name == "GPSInfo":
-            for key in value:
-                gps_tag = ExifTags.GPSTAGS.get(key, key)
-                gps_info[gps_tag] = value[key]
 
-    # GPS Coordinates
+            # SAFETY CHECK
+            if isinstance(value, dict):
+
+                for key, val in value.items():
+                    gps_tag = ExifTags.GPSTAGS.get(key, key)
+                    gps_info[gps_tag] = val
+
+    # Coordinates
     lat = gps_info.get("GPSLatitude")
     lat_ref = gps_info.get("GPSLatitudeRef")
 
@@ -75,6 +78,7 @@ def extract_metadata(image):
     lon_ref = gps_info.get("GPSLongitudeRef")
 
     if lat and lon:
+
         lat = convert_to_degrees(lat)
         lon = convert_to_degrees(lon)
 
